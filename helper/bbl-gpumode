@@ -1,0 +1,81 @@
+#!/bin/sh
+# BetterBatteryLookup GPU mode switch. Runs as root through pkexec.
+#   bbl-gpumode status | hybrid | integrated
+# integrated: block the NVIDIA driver and remove the dGPU from the PCI bus at boot,
+#             so it is powered off and nothing can wake it.
+# hybrid:     undo that (default; the dGPU runtime-suspends on its own).
+# Both take effect after a reboot.
+set -eu
+
+MODPROBE=/etc/modprobe.d/betterbatterylookup-integrated.conf  # must match bbl/gpumode.py
+UDEV=/etc/udev/rules.d/00-betterbatterylookup-integrated.rules
+
+die() { echo "error: $*" >&2; exit 1; }
+
+nvidia_display_devices() {
+    for d in /sys/bus/pci/devices/*; do
+        [ "$(cat "$d/vendor")" = 0x10de ] || continue
+        case "$(cat "$d/class")" in 0x03*) echo "$d" ;; esac
+    done
+}
+
+rebuild_initramfs() {
+    echo "Rebuilding initramfs..."
+    if command -v limine-mkinitcpio >/dev/null 2>&1; then limine-mkinitcpio
+    elif command -v mkinitcpio >/dev/null 2>&1; then mkinitcpio -P
+    elif command -v dracut >/dev/null 2>&1; then dracut --regenerate-all --force
+    elif command -v update-initramfs >/dev/null 2>&1; then update-initramfs -u -k all
+    else echo "warning: no initramfs tool found - rebuild your initramfs manually" >&2
+    fi
+}
+
+mode=${1:-status}
+case "$mode" in
+status)
+    if [ -e "$MODPROBE" ]; then echo integrated; else echo hybrid; fi
+    exit 0 ;;
+hybrid|integrated) ;;
+*) die "usage: $0 status|hybrid|integrated" ;;
+esac
+
+[ "$(id -u)" = 0 ] || die "must run as root"
+
+if [ "$mode" = integrated ]; then
+    [ -e "$MODPROBE" ] && { echo "Already configured: integrated (reboot to apply if not active yet)."; exit 0; }
+    devs=$(nvidia_display_devices)
+    [ -n "$devs" ] || die "no NVIDIA GPU found - integrated-only mode supports NVIDIA dGPUs only"
+    for d in $devs; do
+        # the boot display is on the NVIDIA GPU (desktop, or MUX set to dGPU): removing it would leave no screen
+        [ "$(cat "$d/boot_vga" 2>/dev/null)" = 1 ] && die "NVIDIA GPU $(basename "$d") drives the boot display - refusing"
+    done
+
+    cat > "$MODPROBE" <<'EOF'
+# Written by BetterBatteryLookup (integrated-only mode). Undo with: bbl gpu-mode hybrid
+blacklist nouveau
+blacklist nvidia
+blacklist nvidia_drm
+blacklist nvidia_modeset
+blacklist nvidia_uvm
+install nouveau /bin/false
+install nvidia /bin/false
+install nvidia_drm /bin/false
+install nvidia_modeset /bin/false
+install nvidia_uvm /bin/false
+EOF
+    cat > "$UDEV" <<'EOF'
+# Written by BetterBatteryLookup (integrated-only mode). Undo with: bbl gpu-mode hybrid
+# Remove the NVIDIA dGPU functions from the PCI bus so the slot powers off.
+# The display function is only removed if it is not the boot display.
+ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x03[0-9]*", ATTR{boot_vga}=="0", ATTR{power/control}="auto", ATTR{remove}="1"
+ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x040300", ATTR{power/control}="auto", ATTR{remove}="1"
+ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x0c0330", ATTR{power/control}="auto", ATTR{remove}="1"
+ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x10de", ATTR{class}=="0x0c8000", ATTR{power/control}="auto", ATTR{remove}="1"
+EOF
+    rebuild_initramfs
+    echo "Integrated-only mode configured. Reboot to turn the dGPU off."
+else
+    [ -e "$MODPROBE" ] || [ -e "$UDEV" ] || { echo "Already configured: hybrid."; exit 0; }
+    rm -f "$MODPROBE" "$UDEV"
+    rebuild_initramfs
+    echo "Hybrid mode configured. Reboot to bring the dGPU back."
+fi

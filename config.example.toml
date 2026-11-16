@@ -1,0 +1,40 @@
+# BetterBatteryLookup configuration.
+# Changes are applied automatically while the daemon is running.
+
+[panel]
+show_lamp  = true        # colored status dot in the panel
+show_watts = true        # current draw next to it, e.g. "12.3 W"
+
+[plot]
+tooltip_minutes = 10     # x-axis span of the hover plot
+window_minutes  = 120    # x-axis span of the live plot in the TUI
+
+[levels]
+# Lamp color = the worse of (watts level, dGPU level). On AC the watts level is ignored.
+yellow_watts     = 18.0
+red_watts        = 30.0
+dgpu_awake_idle  = "yellow"  # dGPU awake, not working: green|yellow|red
+dgpu_busy        = "red"     # dGPU awake and working
+gpu_busy_percent = 10        # NVIDIA utilization at or above this counts as busy
+
+[estimate]
+time_left_minutes = 5    # draw averaged over this many minutes for the main time-left estimate
+                         # (KDE/UPower use roughly the last 30 s, so theirs jumps more)
+
+[history]
+keep_sessions = 20       # battery sessions kept on disk; older ones are deleted
+
+[sampling]
+interval_seconds  = 2    # how often power and GPU state are read (whole seconds)
+nvml_poll_seconds = 30   # NVIDIA stats are read only while the dGPU is already awake,
+                         # at most this often (each read delays its sleep ~10 s); 0 = never
+flush_seconds     = 60   # how often samples are written to disk
+
+[notify]
+dgpu_idle_minutes = 3    # notify when the dGPU stays awake this long; 0 = off
+session_summary   = true # summary notification when a battery session ends
+sleep_drain       = true # notify battery lost during system sleep
+
+[events]
+high_draw_seconds  = 30            # log when draw stays above red_watts this long
+battery_milestones = [50, 20, 10, 5]
