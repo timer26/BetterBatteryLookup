@@ -1,0 +1,17 @@
+[Unit]
+Description=BetterBatteryLookup battery and dGPU monitor
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=dbus
+BusName=org.betterbatterylookup
+ExecStart=%h/.local/bin/bbl daemon
+Restart=on-failure
+RestartSec=10
+Nice=10
+IOSchedulingClass=idle
+MemoryHigh=80M
+
+[Install]
+WantedBy=graphical-session.target

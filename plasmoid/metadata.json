@@ -1,0 +1,12 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Category": "System Information",
+        "Description": "Battery draw and dGPU power state lamp",
+        "Icon": "battery",
+        "Id": "org.betterbatterylookup.widget",
+        "Name": "BetterBatteryLookup",
+        "Version": "0.1.0"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}
