@@ -202,8 +202,8 @@ def cmd_tui(args):
     return 0
 
 
-TERMINALS = [["konsole", "-e"], ["xdg-terminal-exec"], ["gnome-terminal", "--"], ["kitty"],
-             ["alacritty", "-e"], ["foot"], ["xterm", "-e"]]
+TERMINALS = [["konsole", "-e"], ["xdg-terminal-exec"], ["xfce4-terminal", "--execute"],
+             ["gnome-terminal", "--"], ["kitty"], ["alacritty", "-e"], ["foot"], ["xterm", "-e"]]
 
 
 def cmd_open_tui(args):
@@ -215,6 +215,14 @@ def cmd_open_tui(args):
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             return 0
     sys.exit("no terminal emulator found")
+
+
+def cmd_xfce_details(args):
+    try:
+        from . import xfce_details
+    except (ImportError, ValueError) as e:
+        sys.exit(f"the Xfce details window needs GTK 3 and its PyGObject bindings: {e}")
+    return xfce_details.main()
 
 
 def main(argv=None):
@@ -258,6 +266,7 @@ def main(argv=None):
 
     sub.add_parser("tui", help="interactive terminal UI").set_defaults(fn=cmd_tui)
     sub.add_parser("open-tui", help="open the TUI in a new terminal window").set_defaults(fn=cmd_open_tui)
+    sub.add_parser("xfce-details", help="open the Xfce widget's details window").set_defaults(fn=cmd_xfce_details)
 
     args = ap.parse_args(argv)
     if not args.cmd:

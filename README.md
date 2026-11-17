@@ -1,6 +1,6 @@
 # BetterBatteryLookup
 
-Lightweight battery and dGPU power monitor for Linux laptops (built for KDE Plasma 6, core works anywhere).
+Lightweight battery and dGPU power monitor for Linux laptops, with panel widgets for KDE Plasma 6 and Xfce.
 
 - **Panel lamp** – green / yellow / red / grey by battery draw and dGPU state, optional watts next to it.
 - **Hover** – current draw, battery, time left, dGPU state, small plot (shaded where the dGPU was awake).
@@ -18,21 +18,33 @@ Lightweight battery and dGPU power monitor for Linux laptops (built for KDE Plas
   are read only when the dGPU is *already awake*, at most every `nvml_poll_seconds`, and when you open the
   popup / press `g` in the TUI. (Tools like btop or nvidia-smi poll NVML and keep the dGPU awake.)
 - Samples are buffered and written to SQLite once a minute; old sessions are deleted automatically.
-- One Python process, stdlib + PyGObject. The widget talks to it over D-Bus – no extra processes.
+- One Python daemon samples the hardware. Plasma reads it over D-Bus. On Xfce, Generic Monitor runs a
+  short `dbus-send` command to display the daemon's cached readings. The GTK details window runs only while open.
 
 ## Install
 
 ```sh
-./install.sh            # daemon, `bbl`, Plasma widget (no root)
+./install.sh            # daemon, `bbl`, desktop widgets (no root)
 ./install.sh --system   # + root helper for GPU mode switching (sudo)
 ```
 
-Then right-click the panel → *Add Widgets* → *BetterBatteryLookup*.
+**KDE Plasma 6** — Right-click the panel → *Add Widgets* → *BetterBatteryLookup*.
+
+**Xfce** — Install the `xfce4-genmon-plugin` package, then right-click the panel → *Panel* →
+*Add New Items* → *Generic Monitor*. In its *Properties*, paste the absolute command path printed by
+`./install.sh` (normally `"/home/YOURNAME/.local/bin/bbl-xfce-panel"`), turn off *Label* and set
+*Period* to **2 seconds**. A longer period updates the panel less often without changing hardware sampling.
+
+Hover for draw, battery time, dGPU activity and a power history chart. Click for recent events,
+GPU users, mode controls, configuration and the TUI. A hollow lamp means the daemon is unavailable.
+The Xfce login entry starts the same systemd user service as Plasma.
 
 Dependencies: Python ≥ 3.11, PyGObject. Optional: libgudev (monitor hotplug events),
-Textual (TUI: `pacman -S python-textual`), kpackagetool6 (widget), pkexec (GPU mode).
+Textual (TUI: `pacman -S python-textual`), kpackagetool6 (Plasma), Generic Monitor and `dbus-send`
+(Xfce panel), GTK 3 PyGObject bindings (Xfce details, e.g. `gir1.2-gtk-3.0` on Debian/Ubuntu), pkexec (GPU mode).
 
 Uninstall: `./uninstall.sh` (keeps history), `--purge` (deletes history and config), `--system` (helper).
+On Xfce, also remove the Generic Monitor item you added to the panel.
 
 ## Usage
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install BetterBatteryLookup for the current user.
-#   ./install.sh            daemon (systemd --user), `bbl` command, Plasma widget - no root
+#   ./install.sh            daemon (systemd --user), `bbl` command and desktop widgets - no root
 #   ./install.sh --system   also the root helper for GPU mode switching (uses sudo)
 # Re-running upgrades in place; history and config are kept.
 set -euo pipefail
@@ -32,6 +32,7 @@ mkdir -p "$APP" "$BIN" "$UNIT_DIR"
 cp -r bbl bin "$APP/"
 find "$APP" -name __pycache__ -prune -exec rm -rf {} +
 ln -sf "$APP/bin/bbl" "$BIN/bbl"
+ln -sf "$APP/bin/bbl-xfce-panel" "$BIN/bbl-xfce-panel"
 ok "bbl -> $BIN/bbl"
 case ":$PATH:" in *":$BIN:"*) ;; *) warn "$BIN is not in PATH" ;; esac
 
@@ -52,7 +53,17 @@ if command -v kpackagetool6 >/dev/null; then
         kpackagetool6 -t Plasma/Applet -i plasmoid >/dev/null && ok "widget installed - add it: right-click panel > Add Widgets > BetterBatteryLookup"
     fi
 else
-    warn "kpackagetool6 not found - Plasma widget skipped (CLI and TUI still work)"
+    warn "kpackagetool6 not found - Plasma widget skipped"
+fi
+
+if command -v xfce4-panel >/dev/null; then
+    # Some Xfce sessions do not start systemd's graphical-session.target.
+    install -Dm644 xfce/betterbatterylookup.desktop "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/betterbatterylookup.desktop"
+    command -v dbus-send >/dev/null || warn "dbus-send is needed for the Xfce panel widget"
+    python3 -c 'import gi; gi.require_version("Gtk", "3.0")' 2>/dev/null \
+        || warn "GTK 3 PyGObject bindings are needed for the Xfce details window"
+    ok "Xfce: add Generic Monitor (xfce4-genmon-plugin) to the panel, then open its Properties."
+    echo "    Command: \"$BIN/bbl-xfce-panel\"    Label: off    Period: 2 s"
 fi
 
 if [[ "${1:-}" == "--system" ]]; then

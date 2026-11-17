@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=BetterBatteryLookup
+Comment=Start the battery and dGPU monitoring service
+Exec=systemctl --user start betterbatterylookup.service
+OnlyShowIn=XFCE;
+Terminal=false
