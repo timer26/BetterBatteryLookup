@@ -32,6 +32,7 @@ DBUS_XML = f"""
 <node>
   <interface name="{DBUS_IFACE}">
     <method name="GetState"><arg type="s" direction="out"/></method>
+    <method name="GetXfcePanel"><arg type="s" direction="out"/></method>
     <method name="GetRecent"><arg name="minutes" type="u" direction="in"/><arg type="s" direction="out"/></method>
     <method name="GetGpuDetails"><arg type="s" direction="out"/></method>
   </interface>
@@ -525,6 +526,10 @@ class Daemon:
 
     def _on_call(self, conn, sender, path, iface, method, params, invocation):
         try:
+            if method == "GetXfcePanel":
+                from .xfce_panel import panel_markup
+                invocation.return_value(GLib.Variant("(s)", (panel_markup(self.state()),)))
+                return
             if method == "GetState":
                 out = self.state()
             elif method == "GetRecent":

@@ -1,0 +1,10 @@
+#!/bin/sh
+# Genmon runs this once per refresh. The daemon formats its cached samples so a
+# refresh needs only a short D-Bus call, even on systems with a slow Python startup.
+if ! dbus-send --session --print-reply=literal --reply-timeout=1000 \
+        --dest=org.betterbatterylookup /org/betterbatterylookup \
+        org.betterbatterylookup.Daemon.GetXfcePanel 2>/dev/null; then
+    printf '%s\n' '<txt>○</txt>' '<tool>BetterBatteryLookup daemon unavailable. Run systemctl --user start betterbatterylookup.</tool>'
+fi
+# Genmon passes this field to GLib as a command line. Keep paths and sample data out of it.
+printf '%s\n' "<txtclick>sh -c 'exec \"\$HOME/.local/bin/bbl\" xfce-details'</txtclick>"

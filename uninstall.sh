@@ -10,7 +10,8 @@ CONF="${XDG_CONFIG_HOME:-$HOME/.config}/betterbatterylookup"
 UNIT="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/betterbatterylookup.service"
 
 systemctl --user disable --now betterbatterylookup.service 2>/dev/null || true
-rm -f "$UNIT" "$HOME/.local/bin/bbl"
+rm -f "$UNIT" "$HOME/.local/bin/bbl" "$HOME/.local/bin/bbl-xfce-panel" \
+    "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/betterbatterylookup.desktop"
 systemctl --user daemon-reload
 rm -rf "$DATA/app"
 command -v kpackagetool6 >/dev/null && kpackagetool6 -t Plasma/Applet -r org.betterbatterylookup.widget >/dev/null 2>&1 || true
